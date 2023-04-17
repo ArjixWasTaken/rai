@@ -1,6 +1,6 @@
 use std::vec;
 
-use crate::types::{Span, TokeType, Token};
+use crate::types::{Span, Token, TokenType};
 
 macro_rules! parse_operator {
     ($chars: ident, $idx: ident, $rows: ident, $col: ident) => {{
@@ -10,7 +10,7 @@ macro_rules! parse_operator {
             $idx += 1;
             if $chars[$idx] == '=' {
                 tok = Some(Token {
-                    typ: TokeType::Assignment,
+                    typ: TokenType::Assignment,
                     val: format!("{}=", $chars[$idx - 1]),
                     span: Span {
                         line: $rows.len(),
@@ -20,7 +20,7 @@ macro_rules! parse_operator {
                 });
             } else if $chars[$idx - 1] == $chars[$idx] {
                 tok = Some(Token {
-                    typ: TokeType::Operator,
+                    typ: TokenType::Operator,
                     val: format!("{}{}", $chars[$idx - 1], $chars[$idx]),
                     span: Span {
                         line: $rows.len(),
@@ -35,7 +35,7 @@ macro_rules! parse_operator {
 
         if tok.is_none() {
             tok = Some(Token {
-                typ: TokeType::Operator,
+                typ: TokenType::Operator,
                 val: $chars[$idx].into(),
                 span: Span {
                     line: $rows.len(),
@@ -67,48 +67,48 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
         };
 
         let tok = match char {
-            ';' => Some(Token {
-                typ: TokeType::SemiColon,
+            '#' => Some(Token {
+                typ: TokenType::Pound,
                 val,
                 span,
             }),
             '(' => Some(Token {
-                typ: TokeType::OpenParen,
-                val,
-                span,
-            }),
-            '=' => Some(Token {
-                typ: TokeType::Assignment,
+                typ: TokenType::OpenParen,
                 val,
                 span,
             }),
             ')' => Some(Token {
-                typ: TokeType::CloseParen,
+                typ: TokenType::CloseParen,
                 val,
                 span,
             }),
             '[' => Some(Token {
-                typ: TokeType::OpenBracket,
+                typ: TokenType::OpenBracket,
                 val,
                 span,
             }),
             ']' => Some(Token {
-                typ: TokeType::CloseBracket,
+                typ: TokenType::CloseBracket,
                 val,
                 span,
             }),
             '{' => Some(Token {
-                typ: TokeType::OpenBrace,
+                typ: TokenType::OpenBrace,
                 val,
                 span,
             }),
             '}' => Some(Token {
-                typ: TokeType::CloseBrace,
+                typ: TokenType::CloseBrace,
                 val,
                 span,
             }),
             ',' => Some(Token {
-                typ: TokeType::Comma,
+                typ: TokenType::Comma,
+                val,
+                span,
+            }),
+            ';' => Some(Token {
+                typ: TokenType::SemiColon,
                 val,
                 span,
             }),
@@ -123,9 +123,9 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
 
                         tok = Some(Token {
                             typ: if next == &':' {
-                                TokeType::ConstAssignment
+                                TokenType::ConstAssignment
                             } else {
-                                TokeType::Assignment
+                                TokenType::Assignment
                             },
                             val: format!("{}{}", char, next),
                             span,
@@ -137,7 +137,7 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
                     span.col = col;
 
                     tok = Some(Token {
-                        typ: TokeType::Colon,
+                        typ: TokenType::Colon,
                         val,
                         span,
                     });
@@ -203,7 +203,7 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
                 span.length = string_chars.len() + 2;
 
                 Some(Token {
-                    typ: TokeType::String,
+                    typ: TokenType::String,
                     val: string_chars.iter().collect(),
                     span,
                 })
@@ -227,7 +227,6 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
                             comment_chars.push(chars[idx]);
                             prev = &chars[idx];
                             idx += 1;
-                            col += 1;
 
                             if prev == &'\n' {
                                 rows.push(idx + 1 - rows.iter().sum::<usize>());
@@ -239,7 +238,6 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
                             if chars[idx - 1] == '*' && chars[idx] == '/' {
                                 comment_chars.pop();
                                 idx += 1;
-                                col -= 1;
                             } else {
                                 panic!("Multiline comment was not closed.")
                             }
@@ -250,7 +248,7 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
                         span.col = col;
 
                         Some(Token {
-                            typ: TokeType::Comment,
+                            typ: TokenType::Comment,
                             val: comment_chars.into_iter().collect(),
                             span,
                         })
@@ -261,8 +259,63 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
                     unreachable!()
                 }
             }
+            '.' => {
+                if let Some(next) = chars.get(idx + 1) {
+                    if next.is_numeric() {
+                        let mut number_chars: Vec<char> = vec!['0', '.'];
+                        idx += 1;
+
+                        while idx < chars.len() && chars[idx].is_numeric() {
+                            number_chars.push(chars[idx]);
+                            idx += 1;
+                        }
+
+                        idx -= 1;
+
+                        span.length = number_chars.len();
+                        span.col = col;
+
+                        Some(Token {
+                            typ: TokenType::Float,
+                            val: number_chars.into_iter().collect(),
+                            span,
+                        })
+                    } else if next.is_alphabetic() || next == &'_' {
+                        Some(Token {
+                            typ: TokenType::MemberAccess,
+                            val: char.to_string(),
+                            span,
+                        })
+                    } else {
+                        unreachable!("You can't have a dot w/o purpose, that's just sad.");
+                    }
+                } else {
+                    unreachable!("What the fuck is a dot doing at the end of the file?");
+                }
+            }
             _ => {
-                if chars[idx].is_numeric() {
+                if ['=', '<', '>'].contains(&chars[idx]) {
+                    let mut tok = Token {
+                        typ: TokenType::ComparisonOperator,
+                        val: chars[idx].to_string(),
+                        span,
+                    };
+
+                    if let Some(next) = chars.get(idx + 1) {
+                        if next == &'=' {
+                            tok.val = format!("{}=", chars[idx]);
+                            idx += 1;
+                        }
+                    }
+
+                    if tok.val == "=" {
+                        tok.typ = TokenType::Assignment;
+                    }
+
+                    tok.span.length = tok.val.len();
+
+                    Some(tok)
+                } else if chars[idx].is_numeric() {
                     let mut number_chars: Vec<char> = vec![chars[idx]];
                     let mut is_float = false;
                     idx += 1;
@@ -289,9 +342,9 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
 
                     Some(Token {
                         typ: (if is_float {
-                            TokeType::Float
+                            TokenType::Float
                         } else {
-                            TokeType::Int
+                            TokenType::Int
                         }),
                         val: number_chars.into_iter().collect(),
                         span,
@@ -303,7 +356,7 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
                     span.length = 2;
 
                     Some(Token {
-                        typ: TokeType::Operator,
+                        typ: TokenType::Operator,
                         val: "Range".into(),
                         span,
                     })
@@ -331,7 +384,7 @@ pub(crate) fn lex(text: &str) -> Vec<Token> {
                     span.col = col;
 
                     Some(Token {
-                        typ: TokeType::Word,
+                        typ: TokenType::Word,
                         val: word,
                         span,
                     })

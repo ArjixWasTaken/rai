@@ -1,14 +1,17 @@
 #[derive(Debug, Copy, Clone)]
-pub enum TokeType {
+pub enum TokenType {
     OpenParen,
     CloseParen,
     OpenBracket,
     CloseBracket,
     OpenBrace,
     CloseBrace,
+
+    Pound,
     Comma,
     Colon,
     SemiColon,
+    MemberAccess,
 
     Int,
     Word,
@@ -17,6 +20,7 @@ pub enum TokeType {
     Comment,
 
     Operator,
+    ComparisonOperator,
     Assignment,
     ConstAssignment,
 }
@@ -30,7 +34,7 @@ pub struct Span {
 
 #[derive(Debug, Clone)]
 pub struct Token {
-    pub typ: TokeType,
+    pub typ: TokenType,
     pub val: String,
     pub span: Span,
 }
