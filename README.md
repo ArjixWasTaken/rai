@@ -15,10 +15,10 @@ I'm not sure if I'll ever finish it, but I'm having fun making it, so why not?
 
 ## Q/A
 
-Q: **Will this be a 1:1 clone of Jai?**
-A: *While that is the goal, I'm not sure that I can compete with the Jai team... so I'll probably just make a subset of Jai.*
+Q: **Will this be a 1:1 clone of Jai?** <br/>
+A: *While that is the goal, I'm not sure that I can compete with the Jai team... so I'll probably just make a subset of Jai.* <br/>
 
-Q: **Why Rust?**
-A: *🦀🦀*
+Q: **Why Rust?** <br/>
+A: *🦀🦀* <br/>
 
 ### *You got more questions? Ask them in the issues tab!*
