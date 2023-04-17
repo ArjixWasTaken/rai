@@ -50,7 +50,7 @@ macro_rules! parse_operator {
 }
 
 pub(crate) fn lex(text: &str) -> Vec<Token> {
-    let chars = text.chars().collect::<Vec<char>>();
+    let chars = text.replace("\t", "    ").chars().collect::<Vec<char>>();
     let mut tokens: Vec<Token> = vec![];
     let mut idx = 0;
 
