@@ -1,0 +1,9 @@
+[package]
+name = "rai"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.70"
+casual = "0.2.0"
+colored = "2.0.0"
